@@ -1,0 +1,36 @@
+name: Build Plugin
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build every Maven project
+      run: |
+        find . -name pom.xml -not -path "*/target/*" | while read -r pom; do
+          echo "::group::Building $pom"
+          mvn -B -f "$pom" clean package || exit 1
+          echo "::endgroup::"
+        done
+
+    - name: Upload JAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: Plugin-JARs
+        path: '**/target/*.jar'
+        if-no-files-found: error
